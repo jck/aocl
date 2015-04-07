@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<!--
+Copyright (C) 2013-2014 Altera Corporation, San Jose, California, USA. All rights reserved.
+Permission is hereby granted, free of charge, to any person obtaining a copy of this
+software and associated documentation files (the "Software"), to deal in the Software
+without restriction, including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to
+whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+This agreement shall be governed in all respects by the laws of the State of California and
+by the laws of the United States of America.
+-->
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<title>OPRA FAST Parser: Altera&reg; OpenCL&trade; Design Example</title>
+<link rel="stylesheet" href="../common/readme.css" type="text/css">
+</head>
+<body>
+<h1>
+<div class="preheading">Altera<sup>&reg;</sup> OpenCL&trade; Design Example</div>
+OPRA FAST Parser
+</h1>
+
+<p>This readme file for the OPRA FAST Parser OpenCL Design Example contains
+information about the design example package. For more examples, please
+visit the <a href="http://www.altera.com/support/examples/opencl/opencl.html">
+Altera OpenCL Design Examples page</a>.</p>
+<nav>
+<h2>Contents</h2>
+<ul>
+<li><a href="#Description">Description</a></li>
+<li><a href="#Software_Hardware_Requirements">Software &amp; Hardware Requirements</a></li>
+<li><a href="#Package_Contents">Package Contents</a></li>
+<li><a href="#Compiling_the_OpenCL_Kernel">Compiling the OpenCL Kernel</a></li>
+<li><a href="#Compiling_the_Host_Program">Compiling the Host Program</a></li>
+<li><a href="#Running_the_Host_Program">Running the Host Program</a></li>
+<li><a href="#Release_History">Release History</a></li>
+<li><a href="#Legal">Legal</a></li>
+<li><a href="#Contacting_Altera">Contacting Altera</a></li>
+</ul>
+</nav>
+<section>
+<a id="Description"><h2>Description</h2></a>
+<p>This example is a OPRA Fast parser kernel. It demonstrates:</p><ul>
+        <li>Altera's OpenCL Channels vendor extension</li>
+        <li>Low-latency streaming application where data is read from a data stream
+            encoded in the OPRA FAST message encoding format: www.opradata.com
+            The encoded data is streamed in, decompressed, then sent back to the host.</li>
+      </ul><p>The kernel parses incoming compressed OPRA Fast data from a UDP offload 
+      engine, and returns a subset of fields over ethernet with the UDP offload engine.
+      An initial run is performed by reading and writing to memory for reference.
+      The host program forks into two processes, which allows the host to send 
+      and receive data over UDP independently, and saturate the 10G link. 
+      See the included <a href="OPRAFAST.pdf">presentation</a> for more information.</p>
+</section>
+
+<section>
+<a id="Software_Hardware_Requirements"><h2>Software &amp; Hardware Requirements</h2></a>
+<p/>
+<table class="reqs">
+<thead>
+<tr>
+  <th rowspan="3">Requirement</th>
+  <th rowspan="3">Version</th>
+<th colspan="2">OpenCL Kernel</th><th colspan="4">Host Program</th></tr><tr><th rowspan="2">Hardware<br/>Compile</th><th rowspan="2">Emulation<br/>Compile</th><th colspan="2">Hardware</th><th colspan="2">Emulation</th></tr><tr><th>Compile</th><th>Run</th><th>Compile</th><th>Run</th></tr></thead><tbody><tr><td>Altera Complete Design Suite <small>(Quartus II)</small></td><td>14.1 or later</td><td class="req">&#x02713;</td><td class="req">&#x02713;</td><td></td><td></td><td></td><td></td></tr><tr><td>Altera SDK for OpenCL</td><td>14.1 or later</td><td class="req">&#x02713;</td><td class="req">&#x02713;</td><td class="req" rowspan="2">&#x02713;<div class="either">(either)</div></td><td class="req" rowspan="2">&#x02713;<div class="either">(either)</div></td><td class="req" rowspan="2">&#x02713;<div class="either">(either)</div></td><td class="req" rowspan="2">&#x02713;<div class="either">(either)</div></td></tr><tr><td>Altera Runtime Environment for OpenCL</td><td>14.1 or later</td><td></td><td></td></tr><tr><td>Network Board Support Package<sup><a class="note" href="#req-note-1">(1)</a></sup></td><td>14.1-compatible</td><td class="req">&#x02713;</td><td class="req">&#x02713;</td><td class="req">&#x02713;</td><td class="req">&#x02713;</td><td class="req">&#x02713;</td><td class="req">&#x02713;</td></tr><tr><td>Board Hardware</td><td>-</td><td></td><td></td><td></td><td class="req">&#x02713;</td><td></td><td></td></tr><tr><td>gcc</td><td>4.4.7 or later</td><td></td><td></td><td class="req">&#x02713;</td><td class="req">&#x02713;</td><td class="req">&#x02713;</td><td class="req">&#x02713;</td></tr><tr><td>GNU Make</td><td>3.8.1 or later</td><td></td><td></td><td class="req">&#x02713;</td><td></td><td class="req">&#x02713;</td><td></td></tr><tr><td>10G Networking Hardware<sup><a class="note" href="#req-note-2">(2)</a></sup></td><td>-</td><td></td><td></td><td></td><td class="req">&#x02713;</td><td></td><td></td></tr></tbody>
+</table>
+<h3>Notes</h3><ol class="req-notes"><li><a id="req-note-1"/>
+            This example design requires a BSP that conforms the specifications of the
+            <a href="http://www.altera.com/literature/hb/opencl-sdk/ug_aocl_s5_net_platform.pdf">Network Reference Platform</a>. In particular, the BSP must expose a UDP input and output I/O channel
+            with the interface of the PLDA quick user dataprogram protocol (QuickUDP) intellectual
+            property (IP) core.
+          </li><li><a id="req-note-2"/>
+            In order to achieve 10G speeds, special hardware needs to be used in the host PC.
+            The following hardware combination has been tested to run at 10G speeds:
+            <ul>
+              <li>Solarflare SFN5122F Ethernet Card</li>
+              <li>2x Avago AFBR-709SMZ Transceivers</li>
+              <li>Mellanox MAM1Q00A-QSA Adaptors</li>
+              <li>Addon add-lc-lc-15m5om3 fiber optic cable</li>
+            </ul></li></ol>
+</section>
+
+<section>
+<a id="Package_Contents"><h2>Package Contents</h2></a>
+<p/>
+<table class="pkg-contents">
+<thead>
+<tr>
+  <th class="path">Path</th>
+  <th class="desc">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td class="path"><a href="./" style="padding-left: 0.0ex">opra_fast_parser/</a></td>
+  <td class="desc"></td>
+</tr>
+<tr class="highlight">
+  <td class="path"><a href="./OPRAFAST.pdf" style="padding-left: 2.0ex">OPRAFAST.pdf</a></td>
+  <td class="desc">Detailed presentation about the application, compiler features and implementation.</td>
+</tr>
+<tr>
+  <td class="path"><a href="./Makefile" style="padding-left: 2.0ex">Makefile</a></td>
+  <td class="desc">Makefile for host program</td>
+</tr>
+<tr>
+  <td class="path"><a href="./bin/" style="padding-left: 2.0ex">bin/</a></td>
+  <td class="desc">Host data files, Host program, AOCX files</td>
+</tr>
+<tr>
+  <td class="path"><a href="./bin/config.sh" style="padding-left: 4.0ex">config.sh</a></td>
+  <td class="desc">Script to setup the networking configuration</td>
+</tr>
+<tr>
+  <td class="path"><a href="./device/" style="padding-left: 2.0ex">device/</a></td>
+  <td class="desc">OpenCL kernel files</td>
+</tr>
+<tr>
+  <td class="path"><a href="./device/opra_fast_parser.cl" style="padding-left: 4.0ex">opra_fast_parser.cl</a></td>
+  <td class="desc">Top-level OpenCL kernel file</td>
+</tr>
+<tr>
+  <td class="path"><a href="./host/" style="padding-left: 2.0ex">host/</a></td>
+  <td class="desc"></td>
+</tr>
+<tr>
+  <td class="path"><a href="./host/inc/" style="padding-left: 4.0ex">inc/</a></td>
+  <td class="desc">Host include files</td>
+</tr>
+<tr>
+  <td class="path"><a href="./host/src/" style="padding-left: 4.0ex">src/</a></td>
+  <td class="desc">Host source files</td>
+</tr>
+</tbody>
+</table>
+<h3>Additional Documentation</h3>
+<div class="doc">
+<div class="title"><a href="OPRAFAST.pdf">OPRA Fast Decoder</a> <small>(PDF)</small></div>
+<div class="desc"><p>This presentation contains detailed information about this design:</p><ul>
+          <li>Overview of the application</li>
+          <li>Compiler features, such as I/O channels and loop pipelining</li>
+          <li>Kernel and host implementation</li>
+        </ul></div>
+</div>
+
+</section>
+
+<section>
+<a id="Compiling_the_OpenCL_Kernel"><h2>Compiling the OpenCL Kernel</h2></a>
+    <p>The top-level OpenCL kernel file is <span class="mono">device/opra_fast_parser.cl</span>.</p>
+    <p>To compile the OpenCL kernel, run:</p>
+    <div class="command">aoc device/opra_fast_parser.cl <span class="nowrap">-o</span> bin/opra_fast_parser.aocx --board <span class="highlight">&lt;<i>board</i>&gt;</span></div>
+    <p>where <span class="highlight mono">&lt;<i>board</i>&gt;</span> matches the board you want to target.
+    The <span class="mono">-o bin/opra_fast_parser.aocx</span> argument is used to place the compiled binary
+    in the location that the host program expects.
+    </p>
+<p>If you are unsure of the boards available, use the following command to list
+available boards:</p>
+<div class="command">aoc --list-boards</div>
+<section>
+<h3>Compiling for Emulator</h3>
+<p>To use the emulation flow, the compilation command just needs to be modified slightly:</p>
+<div class="command">aoc <span class="highlight nowrap">-march=emulator</span> device/opra_fast_parser.cl -o bin/opra_fast_parser.aocx --board &lt;<i>board</i>&gt;</div>
+</section>
+
+</section>
+
+<section>
+<a id="Compiling_the_Host_Program"><h2>Compiling the Host Program</h2></a>
+<p>To compile the host program, run:</p>
+<div class="command">make</div>
+<p>The compiled host program will be located at <span class="mono">bin/opra_fast_parser</span>.</p>
+
+</section>
+
+<section>
+<a id="Running_the_Host_Program"><h2>Running the Host Program</h2></a>
+<p>Before running the host program, you should have compiled the OpenCL kernel and the host program. Refer to the above sections if you have not completed those steps.</p>
+<p>To fully utilize the example design to demonstrate 10G link saturation, the 
+          special networking hardware described in the Requirements section needs to be 
+          installed and configured:</p><ol>
+            <li>Install the Solarflare NIC in the PC as documented by the vendor. 
+            Make sure the the card is installed in a PCIe slot capable of Gen2x8.</li>
+            <li>Insert the Mellanox MAM1Q00A-QSA Adaptor into the first QSFP slot of the board. 
+            Connect the Avago AFBR-709SMZ Transceivers to the fibre optic cable, and use it 
+            to connect one end to the NIC SFP port to the FPGA.</li>
+            <li>The UDP offload engine is configured with the IP 192.168.7.4, 
+            and sends to the IP 192.168.7.43 on the host PC.</li>
+          </ol><p>To generate packets at 10G speeds, this demo relies on the Solarflare 
+          OpenOnload driver to accelerate transfers from the host. The OpenOnload driver
+          can be found at <a href="http://www.openonload.org">http://www.openonload.org/</a>.</p><p>The script <span class="mono">bin/config.sh</span> can be used to setup the correct IP addresses 
+          and configure the OpenOnload driver, but may need to be modified to configure the 
+          correct Ethernet interface. Replace <span class="mono">eth2</span> in the script with the name
+          of the Ethernet interface connected to the FPGA accelerator card.</p><p>To run the host program on hardware, execute:</p>
+<div class="command">EF_UDP_RCVBUF=200000 onload bin/opra_fast_parser</div>
+<p>By default, the host program will use UDP for kernel input and output. To 
+          fully saturate the 10G link, the <span class="mono">onload</span> driver is used and an environment
+          variable to set a buffer size is needed.</p><section>
+<h3>Running with the Emulator</h3>
+<p>Prior to running the emulation flow, ensure that you have compiled the kernel for emulation. 
+Refer to the above sections if you have not done so. Also, please set up your environment for
+emulation. Please see the <a href="http://www.altera.com/literature/hb/opencl-sdk/aocl_programming_guide.pdf">Altera SDK for OpenCL Programming Guide</a> for more information.</p>
+<p>When using the emulator, it is advised to use a smaller problem size than what would be
+used when running in hardware.</p>
+<p>For this example design, the suggested emulation command is:</p>
+<div class="command">bin/opra_fast_parser <span class="nowrap">-in=mem</span> <span class="nowrap">-out=mem</span> <span class="nowrap">-framecount=100</span></div>
+<p>The emulation flow does not support I/O channels, so UDP input and output to the kernel
+          is not supported. Instead, we configure the host program to use memory-based input
+          and output.</p><section>
+<h3>Host Parameters</h3>
+<p>The general command-line for the host program is:</p>
+<div class="command">bin/opra_fast_parser <span class="nowrap">[-<span class="highlight">in</span>=&lt;<i>udp|mem</i>&gt;]</span> <span class="nowrap">[-<span class="highlight">out</span>=&lt;<i>udp|mem</i>&gt;]</span> <span class="nowrap">[-<span class="highlight">framecount</span>=&lt;<i>#</i>&gt;]</span></div>
+<p>where the parameters are:</p>
+<table class="host-params parameters">
+<thead>
+<tr>
+  <th class="name">Parameter</th>
+  <th class="type">Type</th>
+  <th class="default">Default</th>
+  <th class="desc">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td class="name">-<span class="highlight">in</span>=&lt;<i>udp|mem</i>&gt;</td>
+  <td class="type">Optional</td>
+  <td class="default">udp</td>
+  <td class="desc">Input source. One of "udp" or "memory".</td>
+</tr>
+<tr>
+  <td class="name">-<span class="highlight">out</span>=&lt;<i>udp|mem</i>&gt;</td>
+  <td class="type">Optional</td>
+  <td class="default">udp</td>
+  <td class="desc">Output destination. One of "udp" or "memory".</td>
+</tr>
+<tr>
+  <td class="name">-<span class="highlight">framecount</span>=&lt;<i>#</i>&gt;</td>
+  <td class="type">Optional</td>
+  <td class="default">1000000</td>
+  <td class="desc">Number of frames to send via UDP or to put into memory as input.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section>
+<h3>OpenCL Binary Selection</h3>
+<p>The host program requires a OpenCL binary (AOCX) file to run. For this example design, OpenCL binary files should be placed in the 
+<span class="mono">bin</span> directory.</p>
+
+<p>By default, the host program will look for a binary file in the following order (earlier pattern matches 
+take priority):</p>
+<ol>
+  <li>A file named <span class="mono">opra_fast_parser.aocx</span>.</li>
+  <li>A file named <span class="mono">opra_fast_parser_<span class="highlight">&lt;<i>board</i>&gt;</span>_141.aocx</span>, 
+  where <span class="highlight mono">&lt;<i>board</i>&gt;</span> is the name of the board (as passed as the 
+  <span class="mono">--board</span> argument to <span class="mono">aoc</span>).</li>
+</ol>
+</section>
+
+</section>
+
+<section>
+<a id="Release_History"><h2>Release History</h2></a>
+<p/>
+<table class="history">
+<thead>
+<tr>
+  <th class="version">Example Version</th>
+  <th class="sdk-version">SDK Version</th>
+  <th class="date">Date</th>
+  <th class="changes">Changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td class="version">1.1</td>
+  <td class="sdk-version">14.1</td>
+  <td class="date">December 2014</td>
+  <td class="changes"><ul><li>New readme documentation.</li><li>Provide suggested emulation-specific arguments.</li></ul></td>
+</tr>
+<tr>
+  <td class="version">1.0</td>
+  <td class="sdk-version">14.0</td>
+  <td class="date">July 2014</td>
+  <td class="changes"><ul><li>First release of example.</li></ul></td>
+</tr>
+</tbody>
+</table>
+
+</section>
+
+<section>
+<a id="Legal"><h2>Legal</h2></a>
+<pre class="license">Copyright (C) 2013-2014 Altera Corporation, San Jose, California, USA. All rights reserved.
+Permission is hereby granted, free of charge, to any person obtaining a copy of this
+software and associated documentation files (the "Software"), to deal in the Software
+without restriction, including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to
+whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+This agreement shall be governed in all respects by the laws of the State of California and
+by the laws of the United States of America.
+</pre><section><h3>Trademarks</h3><div class="trademark"><p>OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission by Khronos.</p><p>Product is based on a published Khronos Specification, and has passed the Khronos Conformance Testing Process. Current conformance status can be found at <a href="www.khronos.org/conformance">www.khronos.org/conformance</a>.</p></div></section>
+</section>
+
+<section>
+<a id="Contacting_Altera"><h2>Contacting Altera</h2></a>
+<p>Although we have made every effort to ensure that this design example works
+correctly, there might be problems that we have not encountered. If you have
+a question or problem that is not answered by the information provided in 
+this readme file or the example's documentation, please contact Altera
+support (<a href="http://www.altera.com/myaltera">myAltera</a>).</p>
+
+</section>
+
+</body>
+</html>
